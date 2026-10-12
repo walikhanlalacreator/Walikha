@@ -1,0 +1,6 @@
+{
+  "name": "Gold Profile AI",
+  "description": "Professional AI-powered trading analysis terminal for Gold and Crypto with Market & Volume Profile, Order Flow, and Risk Management",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

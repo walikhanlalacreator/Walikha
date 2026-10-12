@@ -1,0 +1,135 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 256)) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+             (!('accountBalance' in data) || data.accountBalance is number) &&
+             (!('accountCurrency' in data) || (data.accountCurrency is string && data.accountCurrency.size() <= 10)) &&
+             (!('defaultRiskPercent' in data) || data.defaultRiskPercent is number) &&
+             (!('maxDailyLoss' in data) || data.maxDailyLoss is number) &&
+             (!('maxOpenRisk' in data) || data.maxOpenRisk is number) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidSignalRecord(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.symbol is string && data.symbol.size() > 0 && data.symbol.size() <= 20 &&
+             data.direction is string && (data.direction == 'BUY' || data.direction == 'SELL' || data.direction == 'NO_TRADE') &&
+             (!('entry' in data) || data.entry is number) &&
+             (!('stopLoss' in data) || data.stopLoss is number) &&
+             (!('takeProfit1' in data) || data.takeProfit1 is number) &&
+             (!('takeProfit2' in data) || data.takeProfit2 is number) &&
+             (!('takeProfit3' in data) || data.takeProfit3 is number) &&
+             (!('riskReward' in data) || data.riskReward is number) &&
+             (!('setupQualityScore' in data) || data.setupQualityScore is int) &&
+             (!('profileShape' in data) || (data.profileShape is string && data.profileShape.size() <= 50)) &&
+             (!('marketRegime' in data) || (data.marketRegime is string && data.marketRegime.size() <= 50)) &&
+             (!('invalidationConditions' in data) || (data.invalidationConditions is string && data.invalidationConditions.size() <= 1000)) &&
+             (!('outcome' in data) || (data.outcome is string && data.outcome.size() <= 50)) &&
+             (!('journalNotes' in data) || (data.journalNotes is string && data.journalNotes.size() <= 2000)) &&
+             (!('dataSource' in data) || (data.dataSource is string && data.dataSource.size() <= 100)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidUserAlert(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.symbol is string && data.symbol.size() > 0 && data.symbol.size() <= 20 &&
+             data.alertType is string && data.alertType.size() > 0 && data.alertType.size() <= 50 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             (!('message' in data) || (data.message is string && data.message.size() <= 1000)) &&
+             (!('isRead' in data) || data.isRead is bool) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // User scope
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'email', 'displayName', 'accountBalance', 'accountCurrency',
+                         'defaultRiskPercent', 'maxDailyLoss', 'maxOpenRisk', 'createdAt', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+
+      // Signals Subcollection
+      match /signals/{signalId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         isValidId(signalId) &&
+                         isValidSignalRecord(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         isValidSignalRecord(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'outcome', 'journalNotes', 'invalidationConditions',
+                           'setupQualityScore', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      // Alerts Subcollection
+      match /alerts/{alertId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         isValidId(alertId) &&
+                         isValidUserAlert(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         isValidUserAlert(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'isRead'
+                         ]);
+
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+  }
+}

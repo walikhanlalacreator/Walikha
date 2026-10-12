@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and risk configuration",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "accountBalance": { "type": "number" },
+        "accountCurrency": { "type": "string" },
+        "defaultRiskPercent": { "type": "number" },
+        "maxDailyLoss": { "type": "number" },
+        "maxOpenRisk": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt"]
+    },
+    "SignalRecord": {
+      "title": "SignalRecord",
+      "description": "Trading signal journal and outcome history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "symbol": { "type": "string" },
+        "direction": { "type": "string" },
+        "entry": { "type": "number" },
+        "stopLoss": { "type": "number" },
+        "takeProfit1": { "type": "number" },
+        "takeProfit2": { "type": "number" },
+        "takeProfit3": { "type": "number" },
+        "riskReward": { "type": "number" },
+        "setupQualityScore": { "type": "integer" },
+        "profileShape": { "type": "string" },
+        "marketRegime": { "type": "string" },
+        "invalidationConditions": { "type": "string" },
+        "outcome": { "type": "string" },
+        "journalNotes": { "type": "string" },
+        "dataSource": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "symbol", "direction", "createdAt"]
+    },
+    "UserAlert": {
+      "title": "UserAlert",
+      "description": "Market and execution alerts for user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "symbol": { "type": "string" },
+        "alertType": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "symbol", "alertType", "title", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile with risk management configuration"
+    },
+    "/users/{userId}/signals/{signalId}": {
+      "schema": { "$ref": "#/entities/SignalRecord" },
+      "description": "Journaled signals and backtest outcomes for the user"
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/UserAlert" },
+      "description": "Trading alerts triggered for the user"
+    }
+  }
+}
